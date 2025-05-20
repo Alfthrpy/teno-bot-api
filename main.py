@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from agent import app as chatbot_graph
-from utils import get_latest_messages 
+from utils import get_latest_messages, save_message
 import asyncio
 
 app = FastAPI()
@@ -45,5 +45,9 @@ async def chat_endpoint(request: ChatRequest):
     else:
         # fallback ke sync
         result = chatbot_graph.invoke(state, config=config)
+
+    # Simpan pesan ke database
+    await save_message(session_id, message, "user")
+    await save_message(session_id, result["answer"], "bot")
 
     return ChatResponse(response=result["answer"])
