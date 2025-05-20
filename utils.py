@@ -3,11 +3,10 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 
-TOKEN_ACCOUNT = os.getenv("TOKEN_ACCOUNT")
-async def get_latest_messages(session_id: str, limit: int = 6):
+async def get_latest_messages(session_id: str,token:str, limit: int = 6):
     url = f'https://tenangin-backend.vercel.app/api/chatbot/sessions/{session_id}/messages'
     headers = {
-        "Authorization": f"Bearer {TOKEN_ACCOUNT}"
+        "Authorization": f"Bearer {token}"
     }   
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
@@ -27,10 +26,10 @@ async def get_latest_messages(session_id: str, limit: int = 6):
 
     
 
-async def save_message(session_id: str, message: str, sender: str):
+async def save_message(session_id: str, message: str, sender: str, token:str):
     url = f'https://tenangin-backend.vercel.app/api/chatbot/sessions/{session_id}/messages'
     headers = {
-    "Authorization": f"Bearer {TOKEN_ACCOUNT}",
+    "Authorization": f"Bearer {token}",
     }
     data = {
         "sender": sender,
