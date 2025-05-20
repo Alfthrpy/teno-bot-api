@@ -47,7 +47,7 @@ async def chat_endpoint(request: ChatRequest):
         result = chatbot_graph.invoke(state, config=config)
 
     # Simpan pesan ke database
-    await save_message(session_id, message, "user")
-    await save_message(session_id, result["answer"], "bot")
+    await save_message(session_id, message, "human")
+    await save_message(session_id, result["answer"], "ai")
 
     return ChatResponse(response=result["answer"])
