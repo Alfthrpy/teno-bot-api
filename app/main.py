@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from agent import app as chatbot_graph
-from utils import get_latest_messages, save_message
+from app.agent import app as chatbot_graph
+from app.utils import get_latest_messages, save_message
 import asyncio
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
