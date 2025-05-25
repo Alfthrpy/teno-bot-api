@@ -7,7 +7,6 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
-
 app = FastAPI()
 
 class ChatRequest(BaseModel):
@@ -18,13 +17,12 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
-
-
 def get_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     if not credentials.scheme.lower() == "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication scheme.")
     return credentials.credentials
 
+from httpx import HTTPStatusError
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(
@@ -35,8 +33,18 @@ async def chat_endpoint(
     message = request.message
     reset = request.reset
 
-    # Masukkan token ke get_latest_messages
-    history = await get_latest_messages(session_id, token)
+    try:
+        history = await get_latest_messages(session_id, token)
+    except HTTPStatusError as e:
+        if e.response.status_code == 401:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthorized: invalid token for get_latest_messages"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error while fetching message history: {str(e)}"
+        )
 
     if reset or not history:
         session = {
@@ -60,8 +68,19 @@ async def chat_endpoint(
     else:
         result = chatbot_graph.invoke(state, config=config)
 
-    # Masukkan token ke save_message
-    await save_message(session_id, message, "human", token)
-    await save_message(session_id, result["answer"], "ai", token)
+    # Tangani error 401 juga saat menyimpan pesan
+    try:
+        await save_message(session_id, message, "human", token)
+        await save_message(session_id, result["answer"], "ai", token)
+    except HTTPStatusError as e:
+        if e.response.status_code == 401:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthorized: invalid token for save_message"
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error while saving messages: {str(e)}"
+        )
 
     return ChatResponse(response=result["answer"])

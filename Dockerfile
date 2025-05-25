@@ -4,16 +4,14 @@ FROM python:3.11-slim
 # Set work directory
 WORKDIR /app
 
-
-# Install PyTorch dari source resmi
+# Install PyTorch
 RUN pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
 
-# Lalu install sisanya
+# Install dependensi
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-
-# Salin seluruh isi project ke dalam container
+# Copy project
 COPY . .
 
 # Jalankan aplikasi FastAPI menggunakan uvicorn

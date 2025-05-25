@@ -10,7 +10,7 @@ import torch
 from langgraph.graph import START, StateGraph
 from typing_extensions import List, TypedDict
 from langchain_core.documents import Document
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langsmith import traceable
 from langgraph.checkpoint.memory import MemorySaver
 from langchain.prompts import (
