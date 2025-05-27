@@ -5,7 +5,15 @@ from app.utils import get_latest_messages, save_message
 import asyncio
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-    
+from fastapi.concurrency import run_in_threadpool
+import logging
+import time # Kita butuh ini untuk mengukur waktu
+
+logging.basicConfig(
+    level=logging.INFO,  # Atur level logging: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 security = HTTPBearer()
 app = FastAPI()
 
@@ -34,7 +42,10 @@ async def chat_endpoint(
     reset = request.reset
 
     try:
+        t1 = time.perf_counter()
         history = await get_latest_messages(session_id, token)
+        t2 = time.perf_counter()
+        logging.info(f"Fetched message history in {t2 - t1:.2f} seconds for session {session_id}")
     except HTTPStatusError as e:
         if e.response.status_code == 401:
             raise HTTPException(
@@ -63,15 +74,21 @@ async def chat_endpoint(
         "history": session["history"]
     }
 
+    t1 = time.perf_counter()
     if asyncio.iscoroutinefunction(chatbot_graph.invoke):
         result = await chatbot_graph.invoke(state, config=config)
     else:
-        result = chatbot_graph.invoke(state, config=config)
+        result = await run_in_threadpool(chatbot_graph.invoke, state, config=config)
+    t2 = time.perf_counter()
+    logging.info(f"Chatbot response generated in {t2 - t1:.2f} seconds for session {session_id}")
 
     # Tangani error 401 juga saat menyimpan pesan
     try:
+        t1 = time.perf_counter()
         await save_message(session_id, message, "human", token)
         await save_message(session_id, result["answer"], "ai", token)
+        t2 = time.perf_counter()
+        logging.info(f"Saved messages in {t2 - t1:.2f} seconds for session {session_id}")
     except HTTPStatusError as e:
         if e.response.status_code == 401:
             raise HTTPException(
