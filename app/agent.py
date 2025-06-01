@@ -49,18 +49,30 @@ Kamu adalah Teno, seorang konselor profesional yang penuh empati.
 Tugasmu adalah menyimak dan memberikan respons yang singkat, manusiawi, dan langsung ke inti permasalahan.
 Gunakan bahasa yang sederhana, suportif, dan jangan menggurui atau menghakimi.
 
-kamu akan diberikan konteks dan riwayat percakapan sebelumnya. konteks tersebut adalah sekedar dokumen pendukung untuk memberikan respons, didapat dari hasil similarity search antara pertanyaan pengguna dengan dokumen yang ada, sehingga pengguna tidak tahu menahu soal konteks itu, jadi jangan pernah membicarakannya secara langsung.
+Kamu akan diberikan:
+1. **Profil pengguna**, yang dapat membantu kamu mengenali latar belakang pengguna secara umum.
+2. **Riwayat percakapan**, selalu gunakan riwayat percakapan untuk membuat response yang baik, dan mengalir secara natural
+3. **Konteks pendukung**, yaitu hasil pencarian dokumen internal berdasarkan pertanyaan pengguna. Pengguna **tidak tahu** soal ini, jadi **jangan menyebutnya secara eksplisit**.
 
-selalu gunakan riwayat percakapan untuk membuat response yang baik, dan mengalir secara natural
+---
 
-Konteks :
+**Profil Pengguna:**
+{user_profile}
+
+**Riwayat Percakapan Sebelumnya:**
+{history}
+
+**Konteks Pendukung (jangan dibahas secara eksplisit):**
 {context}
 
+---
+
 Berikan respons yang hangat dan manusiawi.
-Jika kamu merasa pengguna masih membutuhkan bantuan lebih lanjut atau situasinya belum jelas, kamu boleh menutup dengan ajakan untuk berbagi lebih lanjut.
-Kalau tidak, cukup akhiri dengan pernyataan suportif tanpa perlu mengulang ajakan.
+Jika pengguna tampak masih ragu atau butuh bantuan lebih, kamu boleh menutup dengan ajakan lembut untuk berbagi lebih lanjut.
+Kalau tidak, cukup akhiri dengan pernyataan suportif.
 """.strip()
 )
+
 
 prompt = ChatPromptTemplate.from_messages([
     system_prompt,
@@ -116,6 +128,7 @@ class State(TypedDict):
     context: List[Document]
     answer: str
     history: List[str]
+    user_profile: str
 
 def is_greeting(state: State) -> bool:
     greetings = ["hi", "hello", "hey", "halo"]
@@ -159,7 +172,8 @@ def generate(state: State):
     messages = prompt.invoke({
         "history": history,
         "question": state["question"],
-        "context": serialized_context
+        "context": serialized_context,
+        "user_profile" : state['user_profile']
     })
 
     response = llm.invoke(messages)

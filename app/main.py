@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from app.agent import app as chatbot_graph
-from app.utils import get_latest_messages, save_message
+from app.utils import get_latest_messages, get_profile, save_message
 import asyncio
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -44,6 +44,7 @@ async def chat_endpoint(
     try:
         t1 = time.perf_counter()
         history = await get_latest_messages(session_id, token)
+        profiles = await get_profile(session_id)
         t2 = time.perf_counter()
         logging.info(f"Fetched message history in {t2 - t1:.2f} seconds for session {session_id}")
     except HTTPStatusError as e:
@@ -60,7 +61,8 @@ async def chat_endpoint(
     if reset or not history:
         session = {
             "thread_id": session_id,
-            "history": []
+            "history": [],
+            "user_profile" : profiles
         }
     else:
         session = {
@@ -71,7 +73,8 @@ async def chat_endpoint(
     config = {"configurable": {"thread_id": session["thread_id"]}}
     state = {
         "question": message,
-        "history": session["history"]
+        "history": session["history"],
+        "user_profile" : profiles
     }
 
     t1 = time.perf_counter()
