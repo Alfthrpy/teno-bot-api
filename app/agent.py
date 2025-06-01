@@ -88,9 +88,10 @@ class SBERTEmbeddings(Embeddings):
 
     def embed_query(self, query: str) -> list[float]:
         # Menghasilkan embedding untuk query
-        embedding = sbert_model.encode(query, convert_to_tensor=True)
-        embedding = embedding.to(device)  # Pindahkan embedding ke GPU (jika ada)
-        return embedding.cpu().numpy().tolist()  # Pindahkan kembali ke CPU untuk konversi
+        with torch.no_grad():
+            embedding = sbert_model.encode(query, convert_to_tensor=True)
+            embedding = embedding.to(device)  # Pindahkan embedding ke GPU (jika ada)
+            return embedding.cpu().numpy().tolist()  # Pindahkan kembali ke CPU untuk konversi
 
 # Inisialisasi embeddings SBERT dan FAISS vector store
 sbert_embeddings = SBERTEmbeddings()
