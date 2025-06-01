@@ -19,9 +19,16 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
     MessagesPlaceholder,
 )
-import uuid
+import logging
+import time
 from langchain_core.messages import HumanMessage, AIMessage
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,  # Atur level logging: DEBUG, INFO, WARNING, ERROR, CRITICAL
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 api_key = os.getenv("GEMINI_API_KEY")
 if api_key is None:
@@ -88,10 +95,9 @@ class SBERTEmbeddings(Embeddings):
 
     def embed_query(self, query: str) -> list[float]:
         # Menghasilkan embedding untuk query
-        with torch.no_grad():
-            embedding = sbert_model.encode(query, convert_to_tensor=True)
-            embedding = embedding.to(device)  # Pindahkan embedding ke GPU (jika ada)
-            return embedding.cpu().numpy().tolist()  # Pindahkan kembali ke CPU untuk konversi
+        embedding = sbert_model.encode(query, convert_to_tensor=True)
+        embedding = embedding.to(device)  # Pindahkan embedding ke GPU (jika ada)
+        return embedding.cpu().numpy().tolist()  # Pindahkan kembali ke CPU untuk konversi
 
 # Inisialisasi embeddings SBERT dan FAISS vector store
 sbert_embeddings = SBERTEmbeddings()
@@ -117,6 +123,7 @@ def is_greeting(state: State) -> bool:
 
 
 def retrieve(state: State):
+    t1 = time.perf_counter()
     if is_greeting(state):
         return {"context": []}
 
@@ -131,10 +138,12 @@ def retrieve(state: State):
 
     enhanced_query = f"{recent_context} {state['question']}".strip()
     retrieved_docs = vector_store.similarity_search(enhanced_query, k=2)
-
+    t2 = time.perf_counter()
+    logging.info(f"Retrieved {len(retrieved_docs)} documents in {t2 - t1:.2f} seconds for query: {enhanced_query}")
     return {"context": retrieved_docs}
 
 def generate(state: State):
+    t1 = time.perf_counter()
     docs_content = [
         {
             "BAB": doc.metadata.get("bab", "Tidak diketahui"),
@@ -154,6 +163,8 @@ def generate(state: State):
     })
 
     response = llm.invoke(messages)
+    t2 = time.perf_counter()
+    logging.info(f"Generated response in {t2 - t1:.2f} seconds for question: {state['question']}")
 
     # Salin history lama
     new_history = history.copy()
